@@ -2,6 +2,7 @@ import click
 
 from swan_tools.config import HUB_IMAGE, USER_IMAGE
 from swan_tools.docker import RebuildFrom, build_and_push_hub_image, rebuild_user_image
+from swan_tools.status import run_dashboard
 
 
 class RebuildFromType(click.ParamType):
@@ -80,3 +81,9 @@ def user(rebuild_from: RebuildFrom, image: str, packages: str, *, push: bool, ve
         Push=push,
     )
     rebuild_user_image(rebuild_from, image, packages_list, push=push)
+
+
+@cli.command()
+def status():
+    """Launch the SWAN cluster health dashboard (TUI)."""
+    run_dashboard()
