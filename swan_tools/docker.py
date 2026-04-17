@@ -153,7 +153,7 @@ def build_swan_layer(
     )
 
 
-def rebuild_user_image(rebuild_from: RebuildFrom, image: str, packages: list[str], *, push: bool):
+def rebuild_user_image(rebuild_from: RebuildFrom, image: str, packages: list[str] | Literal["all"], *, push: bool):
     base_dir = get_swan_base_dir()
 
     if rebuild_from >= RebuildFrom.BASE:
@@ -174,7 +174,7 @@ def rebuild_user_image(rebuild_from: RebuildFrom, image: str, packages: list[str
     click.secho("  Building user extensions", fg="cyan")
     extensions_dir = base_dir / "jupyter-extensions"
     for path in iter_python_packages(extensions_dir):
-        if not packages or path.name.lower() in packages:
+        if packages == "all" or path.name.lower() in packages:
             with spinner(path.name, indent=2):
                 uv_build(path)
 

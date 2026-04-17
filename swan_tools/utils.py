@@ -88,4 +88,4 @@ def run_uv(cwd: Path, *args):
 
 
 def uv_build(path: Path):
-    run_uv(path, "build")
+    run_uv(path, "build", "--clear")

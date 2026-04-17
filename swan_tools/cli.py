@@ -1,5 +1,7 @@
 import click
 
+from typing import Literal
+
 from swan_tools.config import HUB_IMAGE, USER_IMAGE
 from swan_tools.docker import RebuildFrom, build_and_push_hub_image, rebuild_user_image
 from swan_tools.status import run_dashboard
@@ -72,12 +74,17 @@ def hub(image: str, *, push: bool, verbose: bool):
 @click.option("--push/--no-push", is_flag=True, help="Push the built image to the registry", default=True)
 @click.option("-v", "--verbose", is_flag=True, help="Show command output")
 def user(rebuild_from: RebuildFrom, image: str, packages: str, *, push: bool, verbose: bool):
-    packages_list = [pkg.strip().lower() for pkg in packages.split(",")] if packages else []
+    packages_list: list[str] | Literal["all"]
+    if packages.lower() == 'all':
+        packages_list = 'all'
+    else:
+        packages_list = [pkg.strip().lower() for pkg in packages.split(",")]
+    
     _print_header(
         "Building user image",
         **{"Rebuild from": rebuild_from.name},
         Image=image,
-        Packages=", ".join(packages_list) or "(all)",
+        Packages="(all)" if packages == "all" else ", ".join(packages_list),
         Push=push,
     )
     rebuild_user_image(rebuild_from, image, packages_list, push=push)
