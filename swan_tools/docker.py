@@ -18,13 +18,22 @@ from swan_tools.utils import (
 )
 
 
-DOCKERFILE_TEMPLATE = """
+HUB_DOCKERFILE_TEMPLATE = """
 FROM {base_image}
 
 {wheels_to_add}
 
-RUN pip3 uninstall -y {extensions}
-RUN pip3 install --no-cache-dir {wheels}
+RUN uv pip uninstall -y {extensions}
+RUN uv pip install --no-cache-dir {wheels}
+"""
+
+USER_DOCKERFILE_TEMPLATE = """
+FROM {base_image}
+
+{wheels_to_add}
+
+RUN pip uninstall -y {extensions}
+RUN pip install --no-cache-dir {wheels}
 """
 
 
@@ -52,10 +61,10 @@ def collect_wheels(extensions_dir: Path, packages: list[str] | None = None) -> l
     ]
 
 
-def generate_dockerfile(base_dir: Path, base_image: str, wheels: list[Path]) -> str:
+def generate_dockerfile(base_dir: Path, base_image: str, wheels: list[Path], *, for_user: bool = True) -> str:
     wheels_to_add = [f"COPY {wheel.relative_to(base_dir)} /wheels/" for wheel in wheels]
     extensions = " ".join(w.stem.split("-")[0] for w in wheels)
-    dockerfile = DOCKERFILE_TEMPLATE.format(
+    dockerfile = (USER_DOCKERFILE_TEMPLATE if for_user else HUB_DOCKERFILE_TEMPLATE).format(
         base_image=base_image,
         wheels_to_add="\n".join(wheels_to_add),
         extensions=extensions,
@@ -98,9 +107,11 @@ def build_extensions_image(
     base_image: str,
     image_name: str,
     packages: list[str] | None = None,
+    *,
+    for_user: bool = True,
 ):
     wheels = collect_wheels(extensions_dir, packages)
-    dockerfile = generate_dockerfile(base_dir, base_image, wheels)
+    dockerfile = generate_dockerfile(base_dir, base_image, wheels, for_user=for_user)
     build_docker_image(image_name, cwd=base_dir, dockerfile=dockerfile)
 
 
@@ -121,7 +132,7 @@ def build_and_push_hub_image(image: str, *, push: bool):
     with spinner("Building base hub image"):
         build_docker_image(base_image, cwd=base_dir / "jupyterhub-image")
     with spinner("Building final hub image with extensions"):
-        build_extensions_image(base_dir, extensions_dir, base_image, image)
+        build_extensions_image(base_dir, extensions_dir, base_image, image, for_user=False)
 
     if push:
         with spinner(f"Pushing {image}"):
